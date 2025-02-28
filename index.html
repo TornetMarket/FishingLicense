@@ -35,6 +35,7 @@
       cursor: pointer;
       z-index: 10;
       box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+      font-size: 16px;
     }
     #menuButton { top: 15px; }
     #licenseButton { top: 60px; }
@@ -61,6 +62,7 @@
       overflow-y: auto;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       position: relative;
+      font-size: 16px;
     }
     #closeModal {
       position: absolute;
@@ -68,7 +70,7 @@
       right: 10px;
       background: none;
       border: none;
-      font-size: 22px;
+      font-size: 24px;
       cursor: pointer;
     }
     .section {
@@ -80,19 +82,21 @@
     .section h2 {
       margin: 5px 0;
       color: #333;
+      font-size: 18px;
     }
     .section p {
       margin: 3px 0;
       color: #555;
     }
     .section button {
-      padding: 8px 14px;
+      padding: 10px 16px;
       background: #4CAF50;
       border: none;
       color: #fff;
       border-radius: 5px;
       cursor: pointer;
       margin-top: 8px;
+      font-size: 16px;
     }
     .section button:hover {
       background: #45a045;
@@ -106,6 +110,7 @@
       padding: 8px;
       border: 1px solid #ddd;
       border-radius: 5px;
+      font-size: 16px;
     }
     
     /* Admin Modal styling */
@@ -128,6 +133,7 @@
       text-align: center;
       position: relative;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 18px;
     }
     #closeAdminModal {
       position: absolute;
@@ -135,10 +141,37 @@
       right: 10px;
       background: none;
       border: none;
-      font-size: 22px;
+      font-size: 24px;
       cursor: pointer;
     }
     
+    /* Bait Shop Section Styling */
+    #baitShopSection button {
+      margin: 5px 0;
+      padding: 10px 16px;
+      font-size: 16px;
+    }
+    
+    /* Media Queries for Small Screens */
+    @media (max-width: 600px) {
+      #moneyDisplay {
+        font-size: 32px;
+      }
+      #menuButton, #licenseButton, #adminButton {
+        padding: 15px 25px;
+        font-size: 20px;
+      }
+      #modalContent, #adminContent {
+        width: 95%;
+        font-size: 20px;
+      }
+      .section h2 {
+        font-size: 24px;
+      }
+      .section p, .section button {
+        font-size: 20px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -231,8 +264,8 @@
     let playerLevel = 1;
     let licenseCost = 10000; // $10,000 initially
     
-    // Bait Shop variable
-    let currentBaitQuality = 1; // 1 = Default, 2 = Premium, 3 = Ultra, 4 = Legendary
+    // Bait Shop variable: 1 = Default, 2 = Premium, 3 = Ultra, 4 = Legendary
+    let currentBaitQuality = 1;
     
     // Boat object
     let boat = {
@@ -283,14 +316,14 @@
         gradient.addColorStop(0, "#1E90FF");
         gradient.addColorStop(1, "#000080");
       } else if (playerLevel === 2) {
-        gradient.addColorStop(0, "#87CEFA"); // LightSkyBlue
-        gradient.addColorStop(1, "#00BFFF"); // DeepSkyBlue
+        gradient.addColorStop(0, "#87CEFA");
+        gradient.addColorStop(1, "#00BFFF");
       } else if (playerLevel === 3) {
-        gradient.addColorStop(0, "#40E0D0"); // Turquoise
-        gradient.addColorStop(1, "#008080"); // Teal
+        gradient.addColorStop(0, "#40E0D0");
+        gradient.addColorStop(1, "#008080");
       } else if (playerLevel === 4) {
-        gradient.addColorStop(0, "#9370DB"); // MediumPurple
-        gradient.addColorStop(1, "#4B0082"); // Indigo
+        gradient.addColorStop(0, "#9370DB");
+        gradient.addColorStop(1, "#4B0082");
       } else if (playerLevel === 5) {
         gradient.addColorStop(0, "red");
         gradient.addColorStop(0.2, "orange");
@@ -314,9 +347,7 @@
       let baseRarity = Math.floor(1 + depthFactor * 5);
       let rarity = Math.min(5, baseRarity + playerLevel - 1);
       // Increase chance for a higher rarity based on current bait quality
-      if(rarity < 5 && Math.random() < 0.2 * (currentBaitQuality - 1)) {
-        rarity++;
-      }
+      if(rarity < 5 && Math.random() < 0.2 * (currentBaitQuality - 1)) { rarity++; }
       
       // Fish types by rarity
       const fishTypes = {
@@ -429,7 +460,7 @@
     function update() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Draw sea background based on license level
+      // Draw sea background based on player (license) level
       let seaGradient = getSeaGradient();
       ctx.fillStyle = seaGradient;
       ctx.fillRect(0, boat.y + boat.height, canvas.width, canvas.height - (boat.y + boat.height));
@@ -505,9 +536,7 @@
     update();
     
     // --- Input: Player hook drop on canvas click ---
-    canvas.addEventListener("click", () => {
-      if (hook.state === "idle") { hook.state = "dropping"; }
-    });
+    canvas.addEventListener("click", () => { if (hook.state === "idle") { hook.state = "dropping"; } });
     
     // --- Modal (Menu) Functionality ---
     const modal = document.getElementById("modal");
@@ -669,9 +698,7 @@
         let summary = {};
         inventory.forEach(fish => {
           let key = fish.name + "-" + fish.rarity;
-          if (!summary[key]) {
-            summary[key] = { count: 0, name: fish.name, rarity: fish.rarity, baseValue: fish.baseValue };
-          }
+          if (!summary[key]) { summary[key] = { count: 0, name: fish.name, rarity: fish.rarity, baseValue: fish.baseValue }; }
           summary[key].count++;
         });
         for (let key in summary) {
@@ -692,7 +719,6 @@
       boatUpgradeCostDisplay.textContent = boatUpgradeCost;
       marketLevelDisplay.textContent = marketLevel;
       marketUpgradeCostDisplay.textContent = marketUpgradeCost;
-      // Sea and fish visuals update automatically based on playerLevel.
     }
     
     // --- Fish Spawning ---
