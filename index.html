@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fishing Game</title>
+  <style>
+    /* Global styles */
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #87CEEB;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    canvas { display: block; }
+    
+    /* Top HUD */
+    #moneyDisplay {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      color: #fff;
+      font-size: 26px;
+      z-index: 10;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    /* Three buttons in the top-right: Menu, Buy Fishing License, Admin Menu */
+    #menuButton, #licenseButton, #adminButton {
+      position: absolute;
+      right: 20px;
+      padding: 10px 20px;
+      background: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    }
+    #menuButton { top: 15px; }
+    #licenseButton { top: 60px; }
+    #adminButton { top: 105px; }
+    
+    /* Modal styling for main menu */
+    #modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+    }
+    #modalContent {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 12px;
+      width: 380px;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    #closeModal {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    .section {
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 15px;
+    }
+    .section:last-child { border-bottom: none; }
+    .section h2 {
+      margin: 5px 0;
+      color: #333;
+    }
+    .section p {
+      margin: 3px 0;
+      color: #555;
+    }
+    .section button {
+      padding: 8px 14px;
+      background: #4CAF50;
+      border: none;
+      color: #fff;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .section button:hover {
+      background: #45a045;
+    }
+    #inventoryDisplay {
+      margin-top: 10px;
+      text-align: left;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #fff;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    
+    /* Admin Modal styling */
+    #adminModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 30;
+    }
+    #adminContent {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    #closeAdminModal {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    
+  </style>
+</head>
+<body>
+  <!-- Top HUD -->
+  <div id="moneyDisplay">$0</div>
+  <button id="menuButton">Menu</button>
+  <button id="licenseButton">Buy Fishing License (Level: 1) - $10000</button>
+  <button id="adminButton">Admin Menu</button>
+  
+  <!-- Game Canvas -->
+  <canvas id="gameCanvas"></canvas>
+  
+  <!-- Modal Menu -->
+  <div id="modal">
+    <div id="modalContent">
+      <button id="closeModal">X</button>
+      
+      <!-- Inventory Section -->
+      <div class="section" id="inventorySection">
+        <h2>Inventory</h2>
+        <div id="inventoryDisplay">No fish caught yet.</div>
+        <button id="sellFishButton">Sell All Fish</button>
+      </div>
+      
+      <!-- Upgrades Sections -->
+      <div class="section" id="rodUpgradeSection">
+        <h2>Rod Upgrade</h2>
+        <p>Rod Level: <span id="rodLevelDisplay">1</span></p>
+        <p>Next Upgrade Cost: $<span id="rodUpgradeCostDisplay">100</span></p>
+        <p>Improves hook size & catch multiplier.</p>
+        <button id="upgradeRodButton">Upgrade Rod</button>
+      </div>
+      
+      <div class="section" id="boatUpgradeSection">
+        <h2>Boat Upgrade</h2>
+        <p>Boat Level: <span id="boatLevelDisplay">1</span></p>
+        <p>Next Upgrade Cost: $<span id="boatUpgradeCostDisplay">200</span></p>
+        <p>Makes your boat bigger and adds auto rods.</p>
+        <button id="upgradeBoatButton">Upgrade Boat</button>
+      </div>
+      
+      <div class="section" id="marketUpgradeSection">
+        <h2>Market Upgrade</h2>
+        <p>Market Level: <span id="marketLevelDisplay">1</span></p>
+        <p>Next Upgrade Cost: $<span id="marketUpgradeCostDisplay">250</span></p>
+        <p>Increases fish selling price multiplier.</p>
+        <button id="upgradeMarketButton">Upgrade Market</button>
+      </div>
+      
+      <!-- Bait Shop Section -->
+      <div class="section" id="baitShopSection">
+        <h2>Bait Shop</h2>
+        <p>Current Bait: <span id="currentBaitDisplay">Default Bait</span></p>
+        <button id="buyPremiumBaitButton">Buy Premium Bait ($2500)</button>
+        <button id="buyUltraBaitButton">Buy Ultra Bait ($5000)</button>
+        <button id="buyLegendaryBaitButton">Buy Legendary Bait ($10000)</button>
+        <button id="resetBaitButton">Reset to Default Bait</button>
+      </div>
+      
+    </div>
+  </div>
+  
+  <!-- Admin Modal -->
+  <div id="adminModal">
+    <div id="adminContent">
+      <button id="closeAdminModal">X</button>
+      <h2>Admin Menu</h2>
+      <button id="addMoneyButton" style="margin: 10px;">Add $5000</button>
+      <button id="addLevelButton" style="margin: 10px;">Add Level</button>
+    </div>
+  </div>
+  
+  <script>
+    // --- Canvas & Game Setup ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    let money = 0;
+    let inventory = [];
+    
+    // Upgrades
+    let rodLevel = 1, rodUpgradeCost = 100;
+    let boatLevel = 1, boatUpgradeCost = 200;
+    let marketLevel = 1, marketUpgradeCost = 250;
+    let marketMultiplier = 1.0;
+    
+    // Fishing License (player level) variables, range 1 to 5
+    let playerLevel = 1;
+    let licenseCost = 10000; // $10,000 initially
+    
+    // Bait Shop variable
+    let currentBaitQuality = 1; // 1 = Default, 2 = Premium, 3 = Ultra, 4 = Legendary
+    
+    // Boat object
+    let boat = {
+      x: canvas.width / 2,
+      y: 20,
+      width: 100 + (boatLevel - 1) * 50,
+      height: 30
+    };
+    
+    // Player-controlled hook
+    const hook = {
+      x: boat.x,
+      y: boat.y + boat.height,
+      baseRadius: 5,
+      get radius() { return this.baseRadius + rodLevel * 2; },
+      speed: 8,
+      state: "idle" // "idle", "dropping", "rising"
+    };
+    
+    // Automated rods (from boat upgrades)
+    let autoRods = [];
+    function createAutoRod(x) {
+      return {
+        x: x,
+        y: boat.y + boat.height,
+        baseRadius: 5,
+        get radius() { return this.baseRadius + rodLevel * 2; },
+        speed: 8,
+        state: "idle",
+        timer: Math.random() * 3000
+      };
+    }
+    function updateAutoRodsPositions() {
+      let count = autoRods.length;
+      if (count > 0) {
+        let spacing = boat.width / (count + 1);
+        for (let i = 0; i < count; i++) {
+          autoRods[i].x = boat.x - boat.width/2 + spacing * (i + 1);
+          if(autoRods[i].state === "idle") { autoRods[i].y = boat.y + boat.height; }
+        }
+      }
+    }
+    
+    // Sea gradient based on player (license) level
+    function getSeaGradient() {
+      let gradient = ctx.createLinearGradient(0, boat.y + boat.height, 0, canvas.height);
+      if (playerLevel === 1) {
+        gradient.addColorStop(0, "#1E90FF");
+        gradient.addColorStop(1, "#000080");
+      } else if (playerLevel === 2) {
+        gradient.addColorStop(0, "#87CEFA"); // LightSkyBlue
+        gradient.addColorStop(1, "#00BFFF"); // DeepSkyBlue
+      } else if (playerLevel === 3) {
+        gradient.addColorStop(0, "#40E0D0"); // Turquoise
+        gradient.addColorStop(1, "#008080"); // Teal
+      } else if (playerLevel === 4) {
+        gradient.addColorStop(0, "#9370DB"); // MediumPurple
+        gradient.addColorStop(1, "#4B0082"); // Indigo
+      } else if (playerLevel === 5) {
+        gradient.addColorStop(0, "red");
+        gradient.addColorStop(0.2, "orange");
+        gradient.addColorStop(0.4, "yellow");
+        gradient.addColorStop(0.6, "green");
+        gradient.addColorStop(0.8, "blue");
+        gradient.addColorStop(1, "violet");
+      }
+      return gradient;
+    }
+    
+    // Create fish; size, rarity, and value scale with player (license) level.
+    function createFish() {
+      let y = Math.random() * (canvas.height - (boat.y + boat.height + 150)) + (boat.y + boat.height + 50);
+      let depthFactor = (y - (boat.y + boat.height + 50)) / (canvas.height - (boat.y + boat.height + 150));
+      let sizeBase = 20 + depthFactor * 30;
+      let sizeMultiplier = 1 + (playerLevel - 1) * 0.2;
+      let size = sizeBase * sizeMultiplier;
+      
+      // Base rarity from depth, then boosted by player level (clamped to 5)
+      let baseRarity = Math.floor(1 + depthFactor * 5);
+      let rarity = Math.min(5, baseRarity + playerLevel - 1);
+      // Increase chance for a higher rarity based on current bait quality
+      if(rarity < 5 && Math.random() < 0.2 * (currentBaitQuality - 1)) {
+        rarity++;
+      }
+      
+      // Fish types by rarity
+      const fishTypes = {
+        1: { name: "Minnow", baseValue: 10 },
+        2: { name: "Trout", baseValue: 20 },
+        3: { name: "Salmon", baseValue: 30 },
+        4: { name: "Tuna", baseValue: 40 },
+        5: { name: "Marlin", baseValue: 50 }
+      };
+      let { name, baseValue } = fishTypes[rarity];
+      let x = Math.random() * canvas.width;
+      let speed = (Math.random() * 1.5 + 0.5) * (Math.random() < 0.5 ? -1 : 1);
+      return { x, y, size, rarity, baseValue, speed, name };
+    }
+    const fishArray = [];
+    for (let i = 0; i < 20; i++) { fishArray.push(createFish()); }
+    
+    // --- Drawing Functions ---
+    function drawBoat() {
+      ctx.fillStyle = "#8B4513";
+      ctx.fillRect(boat.x - boat.width/2, boat.y, boat.width, boat.height);
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.moveTo(boat.x, boat.y);
+      ctx.lineTo(boat.x, boat.y - 20);
+      ctx.lineTo(boat.x + 15, boat.y - 10);
+      ctx.closePath();
+      ctx.fill();
+    }
+    function drawHook() {
+      ctx.beginPath();
+      ctx.arc(hook.x, hook.y, hook.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(boat.x, boat.y + boat.height);
+      ctx.lineTo(hook.x, hook.y);
+      ctx.strokeStyle = "black";
+      ctx.stroke();
+    }
+    function drawAutoRod(autoRod) {
+      ctx.beginPath();
+      ctx.arc(autoRod.x, autoRod.y, autoRod.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "black";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(autoRod.x, boat.y + boat.height);
+      ctx.lineTo(autoRod.x, autoRod.y);
+      ctx.strokeStyle = "black";
+      ctx.stroke();
+    }
+    function drawFish(fish) {
+      let grad = ctx.createLinearGradient(fish.x - fish.size, fish.y, fish.x + fish.size, fish.y);
+      if (playerLevel === 1) {
+        grad.addColorStop(0, "orange"); grad.addColorStop(1, "red");
+      } else if (playerLevel === 2) {
+        grad.addColorStop(0, "skyblue"); grad.addColorStop(1, "royalblue");
+      } else if (playerLevel === 3) {
+        grad.addColorStop(0, "gold"); grad.addColorStop(1, "darkorange");
+      } else if (playerLevel === 4) {
+        grad.addColorStop(0, "pink"); grad.addColorStop(1, "purple");
+      } else if (playerLevel === 5) {
+        grad.addColorStop(0, "red"); grad.addColorStop(0.2, "orange");
+        grad.addColorStop(0.4, "yellow"); grad.addColorStop(0.6, "green");
+        grad.addColorStop(0.8, "blue"); grad.addColorStop(1, "violet");
+      }
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(fish.x, fish.y, fish.size, fish.size/2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw tail based on swimming direction
+      let direction = fish.speed >= 0 ? 1 : -1;
+      let tailWidth = fish.size * 0.4, tailHeight = fish.size * 0.3;
+      ctx.fillStyle = "darkorange";
+      ctx.beginPath();
+      if(direction > 0) {
+        ctx.moveTo(fish.x - fish.size, fish.y);
+        ctx.lineTo(fish.x - fish.size - tailWidth, fish.y - tailHeight);
+        ctx.lineTo(fish.x - fish.size - tailWidth, fish.y + tailHeight);
+      } else {
+        ctx.moveTo(fish.x + fish.size, fish.y);
+        ctx.lineTo(fish.x + fish.size + tailWidth, fish.y - tailHeight);
+        ctx.lineTo(fish.x + fish.size + tailWidth, fish.y + tailHeight);
+      }
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw directional eye
+      ctx.fillStyle = "white";
+      let eyeOffset = fish.size * 0.4;
+      let eyeX = fish.x + (direction > 0 ? eyeOffset : -eyeOffset);
+      let eyeY = fish.y - fish.size * 0.2;
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "black";
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw fish name above
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.fillText(fish.name, fish.x, fish.y - fish.size);
+    }
+    
+    // --- Main Game Loop ---
+    function update() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw sea background based on license level
+      let seaGradient = getSeaGradient();
+      ctx.fillStyle = seaGradient;
+      ctx.fillRect(0, boat.y + boat.height, canvas.width, canvas.height - (boat.y + boat.height));
+      
+      drawBoat();
+      
+      // Update player hook
+      if (hook.state === "dropping") {
+        hook.y += hook.speed;
+        if (hook.y >= canvas.height) { hook.state = "rising"; }
+      } else if (hook.state === "rising") {
+        hook.y -= hook.speed;
+        for (let i = fishArray.length - 1; i >= 0; i--) {
+          let fish = fishArray[i];
+          let dx = fish.x - hook.x, dy = fish.y - hook.y;
+          if (Math.sqrt(dx * dx + dy * dy) < fish.size + hook.radius) {
+            inventory.push(fish);
+            fishArray.splice(i, 1);
+          }
+        }
+        if (hook.y <= boat.y + boat.height) {
+          hook.state = "idle";
+          hook.y = boat.y + boat.height;
+          hook.x = boat.x;
+        }
+      }
+      drawHook();
+      
+      // Update auto rods
+      updateAutoRodsPositions();
+      autoRods.forEach(autoRod => {
+        if (autoRod.state === "idle") {
+          autoRod.timer -= 16;
+          if (autoRod.timer <= 0) { autoRod.state = "dropping"; }
+        } else if (autoRod.state === "dropping") {
+          autoRod.y += autoRod.speed;
+          if (autoRod.y >= canvas.height) { autoRod.state = "rising"; }
+        } else if (autoRod.state === "rising") {
+          autoRod.y -= autoRod.speed;
+          for (let i = fishArray.length - 1; i >= 0; i--) {
+            let fish = fishArray[i];
+            let dx = fish.x - autoRod.x, dy = fish.y - autoRod.y;
+            if (Math.sqrt(dx * dx + dy * dy) < fish.size + autoRod.radius) {
+              inventory.push(fish);
+              fishArray.splice(i, 1);
+            }
+          }
+          if (autoRod.y <= boat.y + boat.height) {
+            autoRod.state = "idle";
+            autoRod.y = boat.y + boat.height;
+            autoRod.timer = Math.random() * 3000;
+          }
+        }
+        drawAutoRod(autoRod);
+      });
+      
+      // Update and draw fish; clamp x position to avoid glitches.
+      fishArray.forEach(fish => {
+        fish.x += fish.speed;
+        if (fish.x - fish.size < 0) {
+          fish.x = fish.size;
+          fish.speed = Math.abs(fish.speed);
+        }
+        if (fish.x + fish.size > canvas.width) {
+          fish.x = canvas.width - fish.size;
+          fish.speed = -Math.abs(fish.speed);
+        }
+        drawFish(fish);
+      });
+      
+      requestAnimationFrame(update);
+    }
+    update();
+    
+    // --- Input: Player hook drop on canvas click ---
+    canvas.addEventListener("click", () => {
+      if (hook.state === "idle") { hook.state = "dropping"; }
+    });
+    
+    // --- Modal (Menu) Functionality ---
+    const modal = document.getElementById("modal");
+    const menuButton = document.getElementById("menuButton");
+    const closeModal = document.getElementById("closeModal");
+    const sellFishButton = document.getElementById("sellFishButton");
+    const upgradeRodButton = document.getElementById("upgradeRodButton");
+    const upgradeBoatButton = document.getElementById("upgradeBoatButton");
+    const upgradeMarketButton = document.getElementById("upgradeMarketButton");
+    const inventoryDisplay = document.getElementById("inventoryDisplay");
+    const moneyDisplay = document.getElementById("moneyDisplay");
+    const rodLevelDisplay = document.getElementById("rodLevelDisplay");
+    const rodUpgradeCostDisplay = document.getElementById("rodUpgradeCostDisplay");
+    const boatLevelDisplay = document.getElementById("boatLevelDisplay");
+    const boatUpgradeCostDisplay = document.getElementById("boatUpgradeCostDisplay");
+    const marketLevelDisplay = document.getElementById("marketLevelDisplay");
+    const marketUpgradeCostDisplay = document.getElementById("marketUpgradeCostDisplay");
+    
+    menuButton.addEventListener("click", () => {
+      updateInventoryDisplay();
+      updateUpgradeDisplay();
+      modal.style.display = "flex";
+    });
+    closeModal.addEventListener("click", () => { modal.style.display = "none"; });
+    
+    sellFishButton.addEventListener("click", () => {
+      let totalValue = 0;
+      let summary = {};
+      inventory.forEach(fish => {
+        let key = fish.name + "-" + fish.rarity;
+        if (!summary[key]) { summary[key] = { count: 0, baseValue: fish.baseValue }; }
+        summary[key].count++;
+      });
+      for (let key in summary) {
+        let sellPriceEach = summary[key].baseValue * rodLevel * marketMultiplier;
+        totalValue += sellPriceEach * summary[key].count;
+      }
+      money += totalValue;
+      inventory = [];
+      updateMoneyDisplay();
+      updateInventoryDisplay();
+    });
+    
+    upgradeRodButton.addEventListener("click", () => {
+      if(money >= rodUpgradeCost) {
+        money -= rodUpgradeCost;
+        rodLevel++;
+        rodUpgradeCost = Math.floor(rodUpgradeCost * 1.5);
+        updateMoneyDisplay();
+        updateUpgradeDisplay();
+      } else { alert("Not enough money for rod upgrade!"); }
+    });
+    upgradeBoatButton.addEventListener("click", () => {
+      if(money >= boatUpgradeCost) {
+        money -= boatUpgradeCost;
+        boatLevel++;
+        boatUpgradeCost = Math.floor(boatUpgradeCost * 1.7);
+        boat.width = 100 + (boatLevel - 1) * 50;
+        while(autoRods.length < boatLevel - 1) { autoRods.push(createAutoRod(boat.x)); }
+        updateMoneyDisplay();
+        updateUpgradeDisplay();
+      } else { alert("Not enough money for boat upgrade!"); }
+    });
+    upgradeMarketButton.addEventListener("click", () => {
+      if(money >= marketUpgradeCost) {
+        money -= marketUpgradeCost;
+        marketLevel++;
+        marketMultiplier += 0.2;
+        marketUpgradeCost = Math.floor(marketUpgradeCost * 1.7);
+        updateMoneyDisplay();
+        updateUpgradeDisplay();
+      } else { alert("Not enough money for market upgrade!"); }
+    });
+    
+    // --- Bait Shop Section ---
+    function updateBaitDisplay() {
+      const baitNames = { 1: "Default Bait", 2: "Premium Bait", 3: "Ultra Bait", 4: "Legendary Bait" };
+      document.getElementById("currentBaitDisplay").textContent = baitNames[currentBaitQuality];
+    }
+    document.getElementById("buyPremiumBaitButton").addEventListener("click", () => {
+      if(money >= 2500) {
+        money -= 2500;
+        currentBaitQuality = 2;
+        updateMoneyDisplay();
+        updateBaitDisplay();
+      } else { alert("Not enough money for Premium Bait!"); }
+    });
+    document.getElementById("buyUltraBaitButton").addEventListener("click", () => {
+      if(money >= 5000) {
+        money -= 5000;
+        currentBaitQuality = 3;
+        updateMoneyDisplay();
+        updateBaitDisplay();
+      } else { alert("Not enough money for Ultra Bait!"); }
+    });
+    document.getElementById("buyLegendaryBaitButton").addEventListener("click", () => {
+      if(money >= 10000) {
+        money -= 10000;
+        currentBaitQuality = 4;
+        updateMoneyDisplay();
+        updateBaitDisplay();
+      } else { alert("Not enough money for Legendary Bait!"); }
+    });
+    document.getElementById("resetBaitButton").addEventListener("click", () => {
+      currentBaitQuality = 1;
+      updateBaitDisplay();
+    });
+    
+    // --- License Button ---
+    function updateLicenseButton() {
+      const licenseButton = document.getElementById("licenseButton");
+      licenseButton.textContent = `Buy Fishing License (Level: ${playerLevel}) - $${licenseCost}`;
+    }
+    const licenseButton = document.getElementById("licenseButton");
+    licenseButton.addEventListener("click", () => {
+      if (playerLevel < 5) {
+        if (money >= licenseCost) {
+          money -= licenseCost;
+          playerLevel++;
+          licenseCost = Math.floor(licenseCost * 2);
+          updateMoneyDisplay();
+          updateUpgradeDisplay();
+          updateLicenseButton();
+        } else { alert("Not enough money to buy a fishing license upgrade!"); }
+      } else { alert("Maximum fishing license level reached!"); }
+    });
+    
+    // --- Admin Menu ---
+    const adminButton = document.getElementById("adminButton");
+    adminButton.addEventListener("click", () => {
+      let password = prompt("Enter admin password:");
+      if(password === "admin!") {
+        document.getElementById("adminModal").style.display = "flex";
+      } else { alert("Incorrect password!"); }
+    });
+    document.getElementById("addMoneyButton").addEventListener("click", () => {
+      money += 5000;
+      updateMoneyDisplay();
+    });
+    document.getElementById("addLevelButton").addEventListener("click", () => {
+      if(playerLevel < 5) {
+        playerLevel++;
+        updateLicenseButton();
+        updateUpgradeDisplay();
+      } else { alert("Maximum level reached!"); }
+    });
+    document.getElementById("closeAdminModal").addEventListener("click", () => {
+      document.getElementById("adminModal").style.display = "none";
+    });
+    
+    function updateMoneyDisplay() {
+      moneyDisplay.textContent = "$" + money;
+    }
+    function updateInventoryDisplay() {
+      inventoryDisplay.innerHTML = "";
+      if (inventory.length === 0) {
+        inventoryDisplay.textContent = "No fish caught yet.";
+      } else {
+        let summary = {};
+        inventory.forEach(fish => {
+          let key = fish.name + "-" + fish.rarity;
+          if (!summary[key]) {
+            summary[key] = { count: 0, name: fish.name, rarity: fish.rarity, baseValue: fish.baseValue };
+          }
+          summary[key].count++;
+        });
+        for (let key in summary) {
+          let fishData = summary[key];
+          let sellPriceEach = fishData.baseValue * rodLevel * marketMultiplier;
+          let totalSellPrice = sellPriceEach * fishData.count;
+          let div = document.createElement("div");
+          div.textContent = fishData.name + " (x" + fishData.count + ") - Rarity: " + fishData.rarity +
+            " - Sell: $" + sellPriceEach.toFixed(2) + " ea (Total: $" + totalSellPrice.toFixed(2) + ")";
+          inventoryDisplay.appendChild(div);
+        }
+      }
+    }
+    function updateUpgradeDisplay() {
+      rodLevelDisplay.textContent = rodLevel;
+      rodUpgradeCostDisplay.textContent = rodUpgradeCost;
+      boatLevelDisplay.textContent = boatLevel;
+      boatUpgradeCostDisplay.textContent = boatUpgradeCost;
+      marketLevelDisplay.textContent = marketLevel;
+      marketUpgradeCostDisplay.textContent = marketUpgradeCost;
+      // Sea and fish visuals update automatically based on playerLevel.
+    }
+    
+    // --- Fish Spawning ---
+    setInterval(() => {
+      if (fishArray.length < 20) { fishArray.push(createFish()); }
+    }, 2000);
+    
+    // --- Canvas Resize ---
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      boat.x = canvas.width / 2;
+      updateAutoRodsPositions();
+    });
+    
+    // Initial update calls
+    updateLicenseButton();
+    updateBaitDisplay();
+    
+  </script>
+</body>
+</html>
